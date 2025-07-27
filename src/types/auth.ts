@@ -18,5 +18,6 @@ export interface AuthRequest {
  * Defines the shape of the data received from the backend after a successful login/registration.
  */
 export interface AuthResponse {
+  message: string;
   token: string;
 }

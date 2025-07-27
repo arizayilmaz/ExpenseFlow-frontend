@@ -1,3 +1,4 @@
+import { formatCurrency } from '../../utils/formatters';
 import type { IExpense } from '../../types/types';
 
 interface ExpenseListProps {
@@ -27,9 +28,8 @@ function ExpenseList({ expenses, onDeleteExpense, onEditExpense }: ExpenseListPr
               </div>
               <div className="flex items-center gap-4">
                 <span className="font-bold text-slate-800">
-                  {expense.amount.toFixed(2)} TL
+                  {formatCurrency(expense.amount)}
                 </span>
-                {/* YENİ: Düzenleme ve Silme Butonları Alanı */}
                 <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
                   <span className="text-slate-300 mx-2">|</span>
                   <button onClick={() => onEditExpense(expense)} className="text-xs font-medium text-slate-500 hover:text-blue-600 px-2 py-1 rounded">

@@ -3,13 +3,12 @@ import { FaChartPie } from 'react-icons/fa';
 import { useData } from '../../context/DataContext';
 
 function Header() {
-  // DÜZELTME: Context'ten anlık kullanıcı durumunu ve logout fonksiyonunu alıyoruz
   const { authToken, logout } = useData();
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    logout(); // Context'teki logout fonksiyonunu çağır
-    navigate('/login'); // Kullanıcıyı login sayfasına yönlendir
+    logout();
+    navigate('/login');
   };
 
   const activeLinkStyle = "bg-blue-600 text-white px-3 py-2 rounded-md text-sm font-medium";
@@ -28,18 +27,17 @@ function Header() {
             </div>
           </div>
 
-          {/* DÜZENLEME: Navigasyon linkleri sadece kullanıcı giriş yaptıysa gösterilir */}
           {authToken && (
             <nav className="hidden md:block">
               <div className="ml-10 flex items-baseline space-x-4">
                 <NavLink to="/expenses" className={({ isActive }) => isActive ? activeLinkStyle : inactiveLinkStyle}>My Expenses</NavLink>
                 <NavLink to="/investments" className={({ isActive }) => isActive ? activeLinkStyle : inactiveLinkStyle}>My Investments</NavLink>
                 <NavLink to="/assets" className={({ isActive }) => isActive ? activeLinkStyle : inactiveLinkStyle}>My Assets</NavLink>
+                <NavLink to="/reports" className={({ isActive }) => isActive ? activeLinkStyle : inactiveLinkStyle}>Reports</NavLink>
               </div>
             </nav>
           )}
 
-          {/* DÜZENLEME: Kullanıcı durumuna göre Log In veya Log Out butonu gösterilir */}
           <div className="hidden md:block">
             {authToken ? (
               <button onClick={handleLogout} className="bg-slate-100 text-slate-700 hover:bg-slate-200 px-3 py-2 rounded-md text-sm font-medium">

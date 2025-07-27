@@ -1,11 +1,18 @@
 import type { 
+  IAsset,
   IExpense, 
   ISubscription, 
   IInvestment, 
-  SelectOption,
+  SelectOption, 
   UpdateInvestmentRequest 
 } from '../types/types';
 import type { AuthRequest, RegisterRequest, AuthResponse } from '../types/auth';
+import { transformBackendResponse, transformFrontendRequest } from '../utils/dataTransformers';
+
+export interface MonthlySummaryDto {
+  month: string;
+  totalSpending: number;
+}
 
 const API_BASE_URL = 'http://localhost:8080/api/v1';
 
@@ -20,15 +27,65 @@ const getAuthHeaders = (): HeadersInit => {
   return headers;
 };
 
+interface ApiErrorResponse {
+  message: string;
+  status: number;
+  error: string;
+  timestamp: string;
+  path: string;
+  details?: string[];
+}
+
 const handleResponse = async (response: Response) => {
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ message: response.statusText }));
-    throw new Error(errorData.message || 'An unknown API error occurred');
+    try {
+      const errorData: ApiErrorResponse = await response.json();
+      let errorMessage = errorData.message || 'An unknown API error occurred';
+      
+      // Add validation details if available
+      if (errorData.details && errorData.details.length > 0) {
+        errorMessage += '\n' + errorData.details.join('\n');
+      }
+      
+      throw new Error(errorMessage);
+    } catch (parseError) {
+      // If we can't parse the error response, use status text
+      throw new Error(`Request failed: ${response.status} ${response.statusText}`);
+    }
   }
   if (response.status === 204) {
     return null;
   }
-  return response.json();
+  const data = await response.json();
+  return transformBackendData(data);
+};
+
+const transformBackendData = (data: any): any => {
+  if (!data) return data;
+  
+  if (Array.isArray(data)) {
+    return data.map(transformBackendData);
+  }
+  
+  if (typeof data === 'object') {
+    const transformed: any = {};
+    for (const [key, value] of Object.entries(data)) {
+      if (key === 'id' && value) {
+        transformed[key] = transformBackendResponse.uuid(value);
+      } else if ((key === 'amount' || key === 'initialValue' || key === 'currentValue' || key === 'totalSpending') && value !== null) {
+        transformed[key] = transformBackendResponse.bigDecimal(value);
+      } else if ((key === 'date' || key === 'purchaseDate') && value) {
+        transformed[key] = transformBackendResponse.dateString(value);
+      } else if (typeof value === 'object' && value !== null) {
+        transformed[key] = transformBackendData(value);
+      } else {
+        transformed[key] = value;
+      }
+    }
+    return transformed;
+  }
+  
+  return data;
 };
 
 // --- AUTHENTICATION API ---
@@ -67,18 +124,18 @@ export const addInvestment = (data: Omit<IInvestment, 'id' | 'user' | 'purchaseD
 export const updateInvestment = (id: string, data: UpdateInvestmentRequest): Promise<IInvestment> => fetch(`${API_BASE_URL}/investments/${id}`, { method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(data) }).then(handleResponse);
 export const deleteInvestment = (id: string): Promise<void> => fetch(`${API_BASE_URL}/investments/${id}`, { method: 'DELETE', headers: getAuthHeaders() }).then(handleResponse);
 
+// --- ASSETS API ---
+export const getAssets = (): Promise<IAsset[]> => fetch(`${API_BASE_URL}/assets`, { headers: getAuthHeaders() }).then(handleResponse);
+export const addAsset = (data: Omit<IAsset, 'id' | 'user'>): Promise<IAsset> => fetch(`${API_BASE_URL}/assets`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(data) }).then(handleResponse);
+export const deleteAsset = (id: string): Promise<void> => fetch(`${API_BASE_URL}/assets/${id}`, { method: 'DELETE', headers: getAuthHeaders() }).then(handleResponse);
+
 // --- EXTERNAL API SERVICES ---
 export type PriceData = { [apiId: string]: number };
 
-interface ExchangeRateResponse {
-  result: string;
-  'error-type'?: string;
-  conversion_rates: {
-    [currency_code: string]: number | string;
-  };
-}
-
-const EXCHANGE_RATE_API_KEY = import.meta.env.VITE_EXCHANGE_RATE_API_KEY;
+// --- REPORTS API ---
+export const getMonthlySummary = (): Promise<MonthlySummaryDto[]> => {
+  return fetch(`${API_BASE_URL}/reports/monthly-summary`, { headers: getAuthHeaders() }).then(handleResponse);
+};
 
 export const searchCoins = async (inputValue: string): Promise<SelectOption[]> => {
   if (!inputValue) return [];
@@ -101,45 +158,36 @@ export const searchCoins = async (inputValue: string): Promise<SelectOption[]> =
 };
 
 async function fetchForexAndMetalsPrices(): Promise<PriceData> {
-  if (!EXCHANGE_RATE_API_KEY) {
-    console.error("ExchangeRate-API key is missing from .env.local file.");
-    return {};
-  }
-  const url = `https://v6.exchangerate-api.com/v6/${EXCHANGE_RATE_API_KEY}/latest/USD`;
+  const forexPrices: PriceData = {};
+  
+  // For precious metals, get USD prices
   try {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`ExchangeRate-API request failed: ${response.statusText}`);
-    
-    const data: ExchangeRateResponse = await response.json();
-    if (data.result === 'error') throw new Error(`ExchangeRate-API returned an error: ${data['error-type']}`);
-    
-    const rates = data.conversion_rates;
-    const forexPrices: PriceData = {};
-    if (rates && rates.TRY) {
-      const usdToTryRate = parseFloat(String(rates.TRY));
-      if (!isNaN(usdToTryRate)) {
-        forexPrices['dollar'] = usdToTryRate;
-        const eurRate = parseFloat(String(rates.EUR));
-        if (!isNaN(eurRate) && eurRate !== 0) {
-          forexPrices['euro'] = (1 / eurRate) * usdToTryRate;
+    const metalResponse = await fetch('https://api.metals.live/v1/spot');
+    if (metalResponse.ok) {
+      const metalData = await metalResponse.json();
+      if (metalData && metalData.length > 0) {
+        const goldData = metalData.find((item: { metal: string; price: number }) => item.metal === 'gold');
+        const silverData = metalData.find((item: { metal: string; price: number }) => item.metal === 'silver');
+        
+        if (goldData && goldData.price) {
+          const OUNCE_TO_GRAM = 31.1035;
+          forexPrices['gold'] = goldData.price / OUNCE_TO_GRAM; // USD per gram
         }
-        const OUNCE_TO_GRAM = 31.1035;
-        const xauRate = parseFloat(String(rates.XAU));
-        if (!isNaN(xauRate) && xauRate !== 0) {
-          forexPrices['gold'] = (1 / xauRate) * usdToTryRate / OUNCE_TO_GRAM;
-        }
-        const xagRate = parseFloat(String(rates.XAG));
-        if (!isNaN(xagRate) && xagRate !== 0) {
-          forexPrices['silver'] = (1 / xagRate) * usdToTryRate / OUNCE_TO_GRAM;
+        
+        if (silverData && silverData.price) {
+          const OUNCE_TO_GRAM = 31.1035;
+          forexPrices['silver'] = silverData.price / OUNCE_TO_GRAM; // USD per gram
         }
       }
     }
-    forexPrices['interest'] = 1.0;
-    return forexPrices;
   } catch (error) {
-    console.error("Error fetching or processing forex/metal prices:", error);
-    return {};
+    console.error("Error fetching metal prices:", error);
+    // Fallback prices in USD per gram
+    forexPrices['gold'] = 65; // Approximate gold price per gram in USD
+    forexPrices['silver'] = 0.8; // Approximate silver price per gram in USD
   }
+  
+  return forexPrices;
 }
 
 async function fetchCryptoPrices(investments: IInvestment[]): Promise<PriceData> {
@@ -147,14 +195,14 @@ async function fetchCryptoPrices(investments: IInvestment[]): Promise<PriceData>
   if (cryptoInvestments.length === 0) return {};
   const uniqueApiIds = [...new Set(cryptoInvestments.map(inv => inv.apiId!))];
   const idsString = uniqueApiIds.join(',');
-  const url = `https://api.coingecko.com/api/v3/simple/price?ids=${idsString}&vs_currencies=try`;
+  const url = `https://api.coingecko.com/api/v3/simple/price?ids=${idsString}&vs_currencies=usd`;
   try {
     const response = await fetch(url);
     if (!response.ok) throw new Error('CoinGecko API request failed');
     const data = await response.json();
     const cryptoPrices: PriceData = {};
     for (const id in data) {
-      const price = parseFloat(String(data[id]?.try));
+      const price = parseFloat(String(data[id]?.usd));
       if (!isNaN(price)) {
         cryptoPrices[id] = price;
       }

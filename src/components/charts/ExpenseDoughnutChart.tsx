@@ -1,70 +1,40 @@
-import { useMemo } from 'react';
 import { Doughnut } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, Title } from 'chart.js';
 import type { IExpense } from '../../types/types';
 
-// Chart.js'e kullanacağımız ve "kayıt" etmemiz gereken elementleri tanıtıyoruz.
 ChartJS.register(ArcElement, Tooltip, Legend, Title);
 
-// Bu bileşenin dışarıdan alacağı verilerin (props) tipini belirliyoruz.
-interface ChartProps {
+interface ExpenseDoughnutChartProps {
   expenses: IExpense[];
 }
 
-/**
- * Harcamaları kategorilere göre bir halka grafikte gösteren bileşen.
- */
-function ExpenseDoughnutChart({ expenses }: ChartProps) {
+function ExpenseDoughnutChart({ expenses }: ExpenseDoughnutChartProps) {
+  const categoryTotals: Record<string, number> = {};
   
-  // Veriyi chart.js'in anlayacağı formata dönüştüren mantık.
-  // useMemo kullanarak bu karmaşık hesaplamanın sadece 'expenses' listesi değiştiğinde
-  // yeniden yapılmasını sağlıyoruz. Bu, performansı artırır.
-  const chartData = useMemo(() => {
-    const categoryTotals: { [key: string]: number } = {};
+  expenses.forEach(expense => {
+    const category = expense.category || 'other';
+    categoryTotals[category] = (categoryTotals[category] || 0) + expense.amount;
+  });
 
-    // Gelen tüm harcamalar üzerinde döngüye gir
-    for (const expense of expenses) {
-      // Eğer harcamanın bir kategorisi yoksa, onu 'other' (Diğer) olarak kabul et.
-      const category = expense.category || 'other'; 
-      
-      // Eğer bu kategori daha önce listeye eklenmediyse, başlangıç değerini 0 yap.
-      if (!categoryTotals[category]) {
-        categoryTotals[category] = 0;
-      }
+  const labels = Object.keys(categoryTotals);
+  const totals = Object.values(categoryTotals);
 
-      // Harcama tutarını, sayı olduğundan emin olarak ilgili kategori toplamına ekle.
-      categoryTotals[category] += (Number(expense.amount) || 0);
-    }
-
-    // Hesaplanan toplamları etiketler (labels) ve veri (data) olarak iki ayrı diziye ayır.
-    const labels = Object.keys(categoryTotals);
-    const data = Object.values(categoryTotals);
-    
-    // Chart.js'in beklediği formatta veri objesini oluştur ve döndür.
-    return {
-      labels: labels.map(l => l.charAt(0).toUpperCase() + l.slice(1)), // Etiketlerin baş harflerini büyük yap
-      datasets: [
-        {
-          label: 'TL Spent',
-          data: data,
-          backgroundColor: [
-            '#ef4444', // red-500
-            '#3b82f6', // blue-500
-            '#f97316', // orange-500
-            '#14b8a6', // teal-500
-            '#a855f7', // purple-500
-            '#84cc16', // lime-500
-            '#f43f5e', // rose-500
-            '#64748b', // slate-500
-          ],
-          borderColor: '#ffffff', // Dilimler arası beyaz boşluk
-          borderWidth: 2,
-        },
-      ],
-    };
-  }, [expenses]); // Bu hesaplama sadece 'expenses' prop'u değişince yeniden çalışır.
+  const chartData = {
+    labels: labels.map(l => l.charAt(0).toUpperCase() + l.slice(1)),
+    datasets: [
+      {
+        label: 'USD Spent',
+        data: totals,
+        backgroundColor: [
+          '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', 
+          '#EC4899', '#06B6D4', '#84CC16'
+        ],
+        borderWidth: 2,
+        borderColor: '#ffffff',
+      },
+    ],
+  };
   
-  // Grafiğin görünüm ayarlarını (başlık, pozisyon vb.) içeren obje.
   const options = {
     responsive: true,
     maintainAspectRatio: true,

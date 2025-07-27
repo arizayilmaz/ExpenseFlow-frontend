@@ -1,6 +1,3 @@
-// src/types/types.tsx
-
-// Harcama kategorilerini tanımlıyoruz
 export type ExpenseCategory = 'food' | 'transport' | 'bills' | 'shopping' | 'entertainment' | 'education' | 'travel' | 'other';
 
 export interface IExpense {
@@ -11,7 +8,6 @@ export interface IExpense {
   category: ExpenseCategory;
 }
 
-// Abonelik kategorilerini tanımlıyoruz
 export type SubscriptionCategory = 'streaming' | 'software' | 'gaming' | 'utilities' | 'health' | 'other';
 
 export interface ISubscription {
@@ -23,10 +19,8 @@ export interface ISubscription {
   category: SubscriptionCategory;
 }
 
-// Yatırım türlerini sabit bir liste olarak tanımlıyoruz.
-export type InvestmentType = 'interest' | 'dollar' | 'coin' | 'euro' | 'gold' | 'silver';
+export type InvestmentType = 'coin' | 'gold' | 'silver';
 
-// Bir yatırım objesinin yapısını tanımlıyoruz.
 export interface IInvestment {
   id: string;
   type: InvestmentType;
@@ -37,14 +31,28 @@ export interface IInvestment {
   apiId?: string;
 }
 
-// YENİ: Bir yatırımı güncellerken gönderilecek verinin tipini tanımlar.
 export interface UpdateInvestmentRequest {
   name: string;
   amount: number;
   purchasePrice: number;
   apiId?: string;
 }
+
 export interface SelectOption {
   value: string;
   label: string;
+}
+
+export interface IAsset {
+  id: string;
+  name: string;
+  type: string;
+  currentValue: number;
+  iban?: string;
+}
+
+export interface IBankAccount {
+  id: string;
+  bankName: string;
+  iban: string;
 }

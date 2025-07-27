@@ -24,7 +24,7 @@ function EditSubscriptionModal({ subscription, isOpen, onClose, onUpdate }: Edit
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [paymentDay, setPaymentDay] = useState('');
-  // YENİ: Kategori için de bir state ekliyoruz.
+
   const [category, setCategory] = useState<SubscriptionCategory>('streaming');
 
   // Düzenlenecek abonelik verisi geldiğinde, form alanlarını onun bilgileriyle doldurur.
@@ -33,7 +33,7 @@ function EditSubscriptionModal({ subscription, isOpen, onClose, onUpdate }: Edit
       setName(subscription.name);
       setAmount(String(subscription.amount));
       setPaymentDay(String(subscription.paymentDay));
-      // YENİ: Mevcut aboneliğin kategorisini de state'e atıyoruz.
+  
       setCategory(subscription.category);
     }
   }, [subscription]);
@@ -48,14 +48,14 @@ function EditSubscriptionModal({ subscription, isOpen, onClose, onUpdate }: Edit
       name,
       amount: parseFloat(amount),
       paymentDay: parseInt(paymentDay),
-      category, // YENİ: Güncellenen objeye kategoriyi ekliyoruz.
+      category,
     });
   };
 
   return (
     <GenericModal isOpen={isOpen} onClose={onClose} title="Edit Subscription">
       <form onSubmit={handleSubmit}>
-        {/* DÜZELTME: Eksik olan form inputları eklendi. */}
+
         <div className="space-y-4">
           <div>
             <label htmlFor="sub-name" className="text-sm font-medium text-slate-600">Subscription Name</label>

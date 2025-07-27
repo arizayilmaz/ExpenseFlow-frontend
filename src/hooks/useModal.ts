@@ -1,6 +1,6 @@
+// src/hooks/useModal.ts
 import { useState } from 'react';
 
-// Bu hook, her türlü veri tipiyle çalışabilmesi için generic (<T>) yapıda
 export function useModal<T>() {
   const [isOpen, setIsOpen] = useState(false);
   const [modalData, setModalData] = useState<T | null>(null);
@@ -12,13 +12,8 @@ export function useModal<T>() {
 
   const closeModal = () => {
     setIsOpen(false);
-    setModalData(null); // Kapatırken datayı temizle
+    setModalData(null);
   };
 
-  return {
-    isOpen,
-    modalData,
-    openModal,
-    closeModal,
-  };
+  return { isOpen, modalData, openModal, closeModal };
 }

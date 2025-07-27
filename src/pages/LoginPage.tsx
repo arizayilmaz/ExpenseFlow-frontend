@@ -1,34 +1,31 @@
 import { useState, type FormEvent } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useData } from '../context/DataContext';
+import toast from 'react-hot-toast';
 
 function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  // Bu sefer context'ten login fonksiyonunu alıyoruz
   const { login } = useData();
-  const navigate = useNavigate();
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
-    setError('');
     setIsLoading(true);
     
     try {
       await login({ email, password });
-      navigate('/expenses'); // Giriş başarılıysa ana sayfaya yönlendir
-    } catch (err: any) {
-      setError(err.message || 'Login failed. Please check your credentials.');
+      toast.success('Login successful!');
+    } catch (err) {
+      toast.error((err as Error).message || 'Login failed. Please check your credentials.');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-full">
+    <div className="flex items-center justify-center min-h-full py-12 px-4 sm:px-6 lg:px-8">
         <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-lg">
             <h2 className="text-3xl font-bold text-center text-slate-800">Log In to ExpenseFlow</h2>
              <form onSubmit={handleLogin} className="space-y-6">
@@ -56,9 +53,8 @@ function LoginPage() {
                         placeholder="••••••••"
                     />
                 </div>
-                {error && <p className="text-red-500 text-sm text-center">{error}</p>}
                 <div>
-                    <button type="submit" disabled={isLoading} className="w-full py-3 px-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:bg-blue-300">
+                    <button type="submit" disabled={isLoading} className="w-full py-3 px-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:bg-blue-300 transition-colors">
                         {isLoading ? 'Logging In...' : 'Log In'}
                     </button>
                 </div>

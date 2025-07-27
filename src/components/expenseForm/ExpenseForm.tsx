@@ -24,7 +24,7 @@
     function ExpenseForm({ onAddExpense }: ExpenseFormProps) {
     const [description, setDescription] = useState("");
     const [amount, setAmount] = useState("");
-    const [category, setCategory] = useState<ExpenseCategory>('food'); // YENİ: Kategori için state
+    const [category, setCategory] = useState<ExpenseCategory>('food');
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
@@ -34,7 +34,7 @@
             description,
             amount: parseFloat(amount),
             date: new Date().toISOString(),
-            category, // YENİ: Kategori objeye eklendi
+            category,
         });
         setDescription("");
         setAmount("");
@@ -44,10 +44,10 @@
       <h3 className="text-xl font-semibold text-slate-700 border-b-2 border-blue-500 pb-2 mb-4 inline-block">
         Add New Expense
       </h3>
-      {/* YENİ: Form layout'u kategori alanı için güncellendi */}
+  
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Expense Description" className="p-3 border border-slate-300 rounded-md md:col-span-2" />
-        <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Amount (in TL)" className="p-3 border border-slate-300 rounded-md" />
+        <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Amount (in USD)" className="p-3 border border-slate-300 rounded-md" />
         <select value={category} onChange={(e) => setCategory(e.target.value as ExpenseCategory)} className="p-3 border border-slate-300 rounded-md">
           {categoryOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
         </select>

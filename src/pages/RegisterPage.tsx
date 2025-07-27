@@ -1,35 +1,31 @@
 import { useState, type FormEvent } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useData } from '../context/DataContext';
+import toast from 'react-hot-toast';
 
 function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  // useData hook'undan register fonksiyonunu alıyoruz
-  const { register } = useData(); 
-  const navigate = useNavigate();
+  const { register } = useData();
 
   const handleRegister = async (e: FormEvent) => {
     e.preventDefault();
-    setError('');
     setIsLoading(true);
     
     try {
-      // Context'teki register fonksiyonunu çağırıyoruz
       await register({ email, password });
-      navigate('/expenses'); // Kayıt başarılıysa ana sayfaya yönlendir
-    } catch (err: any) {
-      setError(err.message || 'Registration failed. Please try again.');
+      toast.success('Registration successful! Welcome.');
+    } catch (err) {
+      toast.error((err as Error).message || 'Registration failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-full">
+    <div className="flex items-center justify-center min-h-full py-12 px-4 sm:px-6 lg:px-8">
         <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-lg">
             <h2 className="text-3xl font-bold text-center text-slate-800">Create an Account</h2>
             <form onSubmit={handleRegister} className="space-y-6">
@@ -57,9 +53,8 @@ function RegisterPage() {
                         placeholder="••••••••"
                     />
                 </div>
-                {error && <p className="text-red-500 text-sm text-center">{error}</p>}
                 <div>
-                    <button type="submit" disabled={isLoading} className="w-full py-3 px-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:bg-blue-300">
+                    <button type="submit" disabled={isLoading} className="w-full py-3 px-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:bg-blue-300 transition-colors">
                         {isLoading ? 'Registering...' : 'Register'}
                     </button>
                 </div>

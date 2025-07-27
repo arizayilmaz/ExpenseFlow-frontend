@@ -1,29 +1,8 @@
 import { useState, useEffect, type FormEvent } from 'react';
-import type { IExpense, ISubscription, IInvestment } from '../../types/types';
-import type { PriceData } from '../../services/api';
 import { useData } from '../../context/DataContext';
-import { 
-  FaFileInvoiceDollar, 
-  FaReceipt, 
-  FaCoins, 
-  FaChartLine, 
-  FaExclamationTriangle, 
-  FaPiggyBank 
-} from 'react-icons/fa';
+import { formatCurrency } from '../../utils/formatters';
+import { FaExclamationTriangle, FaPiggyBank, FaFileInvoiceDollar, FaReceipt, FaChartLine } from 'react-icons/fa';
 
-// Para birimini formatlamak için kullanılan yardımcı fonksiyon.
-const formatCurrency = (amount: number): string => {
-  // NaN veya null gibi durumlarda '0.00 TL' döndürerek hatayı engelle
-  if (isNaN(amount) || amount === null) {
-    return '0.00 TL';
-  }
-  return amount.toFixed(2) + ' TL';
-};
-
-/**
- * Finansal özeti ve bütçe limit durumunu gösteren Dashboard bileşeni.
- * Tüm verilerini merkezi DataContext'ten alır.
- */
 function Dashboard() {
   const { 
     subscriptions, 
@@ -34,15 +13,11 @@ function Dashboard() {
     setSpendingLimit 
   } = useData();
   
-  // Limiti girmek için kullanılan input alanının kendi local state'i.
   const [limitInput, setLimitInput] = useState<string>('');
 
-  // Global 'spendingLimit' state'i değiştiğinde, input alanını da güncelliyoruz.
   useEffect(() => {
     setLimitInput(String(spendingLimit || ''));
   }, [spendingLimit]);
-
-  // --- HESAPLAMALAR ---
 
   const totalSubscriptionCost = subscriptions.reduce((sum, sub) => sum + (Number(sub.amount) || 0), 0);
 
@@ -66,7 +41,6 @@ function Dashboard() {
 
   const remainingBudget = (Number(spendingLimit) || 0) - grandTotal;
 
-  // Form gönderildiğinde limiti güncelleyen fonksiyon
   const handleLimitSubmit = (e: FormEvent) => {
     e.preventDefault();
     const newLimit = Number(limitInput);
@@ -76,11 +50,11 @@ function Dashboard() {
   };
 
   return (
-    <div className="p-6 bg-white border border-slate-200 rounded-xl shadow-sm h-full">
-      <h3 className="text-lg font-semibold text-slate-800 mb-4">Financial Summary</h3>
+    <div className="p-2 bg-white border border-slate-400 rounded-2xl shadow-sm h-full w-full max-w-md overflow-hidden">
+      <h3 className="text-lg font-semibold text-slate-800 mb-6">Financial Summary</h3>
       
       {/* Harcama Limiti Belirleme Formu */}
-      <form onSubmit={handleLimitSubmit} className="mb-4">
+      <form onSubmit={handleLimitSubmit} className="mb-12">
         <label htmlFor="limit" className="text-sm font-medium text-slate-600">Set Monthly Limit</label>
         <div className="flex items-center gap-2 mt-1">
           <input
@@ -117,27 +91,28 @@ function Dashboard() {
           </div>
         )}
 
-        {/* Diğer Özet Kartları */}
-        <div className="flex items-start p-4 bg-slate-50 rounded-lg">
-          <div className="p-3 bg-blue-100 rounded-full"><FaFileInvoiceDollar className="h-5 w-5 text-blue-600" /></div>
-          <div className="ml-4">
-            <p className="text-sm font-medium text-slate-500">Subscriptions</p>
-            <p className="text-xl font-bold text-slate-900 mt-1">{formatCurrency(totalSubscriptionCost)}</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
+          <div className="p-6 bg-blue-50 rounded-xl">
+            <div className="flex items-center">
+              <div className="p-3 bg-blue-100 rounded-full"><FaFileInvoiceDollar className="h-5 w-5 text-blue-600" /></div>
+              <h3 className="text-lg font-semibold text-slate-700 ml-3">Subscriptions</h3>
+            </div>
+            <p className="text-2xl font-bold text-blue-600 mt-2">{formatCurrency(totalSubscriptionCost)}</p>
           </div>
-        </div>
 
-        <div className="flex items-start p-4 bg-slate-50 rounded-lg">
-          <div className="p-3 bg-orange-100 rounded-full"><FaReceipt className="h-5 w-5 text-orange-600" /></div>
-          <div className="ml-4">
-            <p className="text-sm font-medium text-slate-500">This Month's Expenses</p>
-            <p className="text-xl font-bold text-slate-900 mt-1">{formatCurrency(totalMonthlyExpense)}</p>
+          <div className="p-6 bg-green-50 rounded-xl">
+            <div className="flex items-center">
+              <div className="p-3 bg-green-100 rounded-full"><FaReceipt className="h-5 w-5 text-green-600" /></div>
+              <h3 className="text-lg font-semibold text-slate-700 ml-3">Monthly Expenses</h3>
+            </div>
+            <p className="text-2xl font-bold text-green-600 mt-2">{formatCurrency(totalMonthlyExpense)}</p>
           </div>
-        </div>
-        
-        <div className="flex items-start p-4 bg-slate-50 rounded-lg">
-          <div className="p-3 bg-purple-100 rounded-full"><FaChartLine className="h-5 w-5 text-purple-600" /></div>
-          <div className="ml-4">
-            <p className="text-sm font-medium text-slate-500">Investment P/L</p>
+
+          <div className="p-6 bg-purple-50 rounded-xl">
+            <div className="flex items-center">
+              <div className="p-3 bg-purple-100 rounded-full"><FaChartLine className="h-5 w-5 text-purple-600" /></div>
+              <h3 className="text-lg font-semibold text-slate-700 ml-3">Investment P/L</h3>
+            </div>
             <p className={`text-xl font-bold mt-1 ${totalProfitLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>{formatCurrency(totalProfitLoss)}</p>
           </div>
         </div>

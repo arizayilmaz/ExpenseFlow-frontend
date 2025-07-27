@@ -1,3 +1,4 @@
+import { formatCurrency } from '../../utils/formatters';
 import type { ISubscription } from '../../types/types';
 
 /**
@@ -63,7 +64,7 @@ function SubscriptionList({ subscriptions, onToggleSubscription, onDeleteSubscri
             const status = getSubscriptionStatus(sub, today);
             return (
               <div key={sub.id} className={`p-4 rounded-xl border bg-white transition-all duration-300 ${status.colorClass} hover:shadow-md hover:border-transparent`}>
-                {/* DÜZELTME: Eksik olan JSX içeriği buraya eklendi. */}
+        
                 <div className="flex items-center justify-between">
                   {/* Sol Taraf: Checkbox, İsim ve Durum Etiketi */}
                   <div className="flex items-center">
@@ -80,7 +81,7 @@ function SubscriptionList({ subscriptions, onToggleSubscription, onDeleteSubscri
                   </div>
                   {/* Sağ Taraf: Tutar ve Ödeme Günü */}
                   <div className="text-right">
-                    <p className="font-bold text-slate-800">{sub.amount.toFixed(2)} TL</p>
+                    <p className="font-bold text-slate-800">{formatCurrency(sub.amount)}</p>
                     <p className="text-xs text-slate-400">Day {sub.paymentDay} of Month</p>
                   </div>
                 </div>

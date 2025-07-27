@@ -26,19 +26,36 @@ function HomePage() {
   const [isEditExpenseModalOpen, setIsEditExpenseModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<IExpense | null>(null);
 
-  const handleEditSubscription = (subscription: ISubscription) => { setEditingSubscription(subscription); setIsEditSubscriptionModalOpen(true); };
-  const handleEditExpense = (expense: IExpense) => { setEditingExpense(expense); setIsEditExpenseModalOpen(true); };
-  const handleAddSubscription = (subscription: ISubscription) => { addSubscription(subscription); setVisibleForm(null); };
-  const handleAddExpense = (expense: IExpense) => { addExpense(expense); setVisibleForm(null); };
-   const handleDeleteSubscription = (id: string) => { 
-    if (window.confirm("Are you sure you want to delete this subscription?")) { 
-      deleteSubscription(id); 
-    } 
+  const handleEditSubscription = (subscription: ISubscription) => {
+    setEditingSubscription(subscription);
+    setIsEditSubscriptionModalOpen(true);
   };
-   const handleDeleteExpense = (id: string) => { 
-    if (window.confirm("Are you sure you want to delete this expense?")) { 
-      deleteExpense(id); 
-    } 
+
+  const handleEditExpense = (expense: IExpense) => {
+    setEditingExpense(expense);
+    setIsEditExpenseModalOpen(true);
+  };
+
+  const handleAddSubscription = (subscription: Omit<ISubscription, 'id' | 'user' | 'lastPaidCycle'>) => {
+    addSubscription(subscription);
+    setVisibleForm(null);
+  };
+
+  const handleAddExpense = (expense: Omit<IExpense, 'id' | 'user' | 'date'>) => {
+    addExpense(expense);
+    setVisibleForm(null);
+  };
+
+  const handleDeleteSubscription = (id: string) => {
+    if (window.confirm("Are you sure you want to delete this subscription?")) {
+      deleteSubscription(id);
+    }
+  };
+
+  const handleDeleteExpense = (id: string) => {
+    if (window.confirm("Are you sure you want to delete this expense?")) {
+      deleteExpense(id);
+    }
   };
 
  
@@ -94,8 +111,28 @@ function HomePage() {
         </div>
       </section>
       
-      <EditSubscriptionModal isOpen={isEditSubscriptionModalOpen} subscription={editingSubscription} onClose={() => setIsEditSubscriptionModalOpen(false)} onUpdate={updateSubscription} />
-      <EditExpenseModal isOpen={isEditExpenseModalOpen} expense={editingExpense} onClose={() => setIsEditExpenseModalOpen(false)} onUpdate={updateExpense} />
+      <EditSubscriptionModal 
+        isOpen={isEditSubscriptionModalOpen} 
+        subscription={editingSubscription} 
+        onClose={() => setIsEditSubscriptionModalOpen(false)} 
+        // DÜZELTME: onUpdate prop'una yeni bir arrow function gönderiyoruz.
+        onUpdate={(updatedData) => {
+            if (editingSubscription) {
+                updateSubscription(editingSubscription.id, updatedData);
+            }
+        }} 
+      />
+      <EditExpenseModal 
+        isOpen={isEditExpenseModalOpen} 
+        expense={editingExpense} 
+        onClose={() => setIsEditExpenseModalOpen(false)} 
+        // DÜZELTME: Aynısını Expense için de yapıyoruz.
+        onUpdate={(updatedData) => {
+            if (editingExpense) {
+                updateExpense(editingExpense.id, updatedData);
+            }
+        }} 
+      />
     </div>
   );
 }

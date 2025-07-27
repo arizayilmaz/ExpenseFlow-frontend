@@ -1,5 +1,5 @@
-// src/components/InvestmentList/InvestmentList.tsx
 
+import { formatCurrency } from '../../utils/formatters';
 import type { IInvestment } from '../../types/types';
 import type { PriceData } from '../../services/api';
 import { FaArrowUp, FaArrowDown, FaEquals } from 'react-icons/fa';
@@ -7,7 +7,7 @@ import { FaArrowUp, FaArrowDown, FaEquals } from 'react-icons/fa';
 interface InvestmentListProps {
   investments: IInvestment[];
   prices: PriceData;
-  // YENİ: Silme ve düzenleme fonksiyonları için proplar
+  
   onDeleteInvestment: (id: string) => void;
   onEditInvestment: (investment: IInvestment) => void;
 }
@@ -33,18 +33,18 @@ function InvestmentList({ investments, prices, onDeleteInvestment, onEditInvestm
               </div>
               <div className="text-center">
                 <p className="text-xs text-slate-400">Initial Value</p>
-                <p className="font-semibold">{inv.initialValue.toFixed(2)} TL</p>
+                <p className="font-semibold">{formatCurrency(inv.initialValue)}</p>
                 <p className="text-xs text-slate-400 mt-2">Current Value</p>
-                <p className="font-bold text-lg">{currentValue.toFixed(2)} TL</p>
+                <p className="font-bold text-lg">{formatCurrency(currentValue)}</p>
               </div>
               <div className={`text-right font-bold text-lg flex items-center justify-end ${isProfit && 'text-green-600'} ${isLoss && 'text-red-600'}`}>
                 {isProfit && <FaArrowUp className="mr-2" />}
                 {isLoss && <FaArrowDown className="mr-2" />}
                 {!isProfit && !isLoss && <FaEquals className="mr-2" />}
-                {profitLoss.toFixed(2)} TL
+                {formatCurrency(profitLoss)}
               </div>
             </div>
-            {/* YENİ: Düzenleme ve Silme Butonları Alanı */}
+
             <div className="flex items-center justify-end space-x-2 mt-3 pt-3 border-t border-slate-100">
               <button onClick={() => onEditInvestment(inv)} className="text-xs font-medium text-slate-500 hover:text-blue-600 px-2 py-1 rounded">
                 Edit

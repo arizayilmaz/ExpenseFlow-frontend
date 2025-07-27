@@ -1,12 +1,19 @@
-import { useMemo, useRef, useEffect } from 'react';
+import { useMemo } from 'react';
 import { Doughnut } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, Title, Chart } from 'chart.js';
+import type { TooltipItem } from 'chart.js';
+import { formatCurrency } from '../../utils/formatters';
 import type { IExpense, ISubscription, IInvestment } from '../../types/types';
 import type { PriceData } from '../../services/api';
 
 ChartJS.register(ArcElement, Tooltip, Legend, Title);
 
-const ensureNumber = (value: any): number => Number(value) || 0;
+interface ChartDataItem {
+  label: string;
+  value: number;
+  currentValue: number;
+  profitLoss?: number;
+}
 
 interface ChartProps {
   dataType: 'spending' | 'investments';
@@ -16,147 +23,132 @@ interface ChartProps {
   prices: PriceData | null;
 }
 
+const centerTextPlugin = {
+  id: 'centerText',
+  afterDraw: (chart: Chart) => {
+    const { ctx, chartArea: { top, left, width, height } } = chart;
+    ctx.save();
+    
+    const centerX = left + width / 2;
+    const centerY = top + height / 2;
+    
+    const dataValues = chart.data.datasets[0].data as number[];
+    const total = dataValues.reduce((acc, value) => acc + (value || 0), 0);
+    
+    ctx.fillStyle = '#64748b';
+    ctx.font = 'bold 16px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`${formatCurrency(total)}`, centerX, centerY - 10);
+    
+    ctx.font = 'normal 14px Inter, sans-serif';
+    ctx.fillText('Total', centerX, centerY + 15);
+    ctx.restore();
+  }
+};
+
 function SummaryDoughnutChart({ dataType, subscriptions, expenses, investments, prices }: ChartProps) {
-  const chartRef = useRef<ChartJS<'doughnut'>>(null);
-
-  // This effect ensures the old chart instance is destroyed before a new one is created.
-  useEffect(() => {
-    const chart = chartRef.current;
-    return () => {
-      if (chart) {
-        chart.destroy();
-      }
-    };
-  }, []); // The empty array ensures this cleanup runs only when the component unmounts.
-
-
-  const centerTextPlugin = {
-    id: 'centerText',
-    afterDraw: (chart: Chart) => {
-      const ctx = chart.ctx;
-      const centerX = (chart.chartArea.left + chart.chartArea.right) / 2;
-      const centerY = (chart.chartArea.top + chart.chartArea.bottom) / 2;
-      const total = chart.config.options?.plugins?.centerText?.total || 0;
-      
-      ctx.save();
-      ctx.font = 'bold 24px Inter, sans-serif';
-      ctx.fillStyle = '#1e293b';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(`${total.toFixed(2)} TL`, centerX, centerY - 10);
-      
-      ctx.font = 'normal 14px Inter, sans-serif';
-      ctx.fillStyle = '#64748b';
-      ctx.fillText('Total', centerX, centerY + 15);
-      ctx.restore();
-    }
-  };
-
   const { chartData, chartOptions } = useMemo(() => {
-    let labels: string[] = [];
-    let data: number[] = [];
+    let data: ChartDataItem[] = [];
     let titleText = '';
-    let total = 0;
-    let detailedData: any[] = [];
 
     if (dataType === 'spending') {
-      titleText = 'Monthly Spending Breakdown';
-      const totalSubscriptionCost = subscriptions.reduce((sum, sub) => sum + ensureNumber(sub.amount), 0);
+      const totalSubscriptionCost = subscriptions.reduce((sum, sub) => sum + (sub.amount || 0), 0);
       const today = new Date();
       const monthlyExpenses = expenses.filter(exp => {
         const expDate = new Date(exp.date);
         return expDate.getMonth() === today.getMonth() && expDate.getFullYear() === today.getFullYear();
       });
-      const totalMonthlyExpense = monthlyExpenses.reduce((sum, exp) => sum + ensureNumber(exp.amount), 0);
+      const totalMonthlyExpense = monthlyExpenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
       
-      labels = ['Subscriptions', 'One-Time Expenses'];
-      data = [totalSubscriptionCost, totalMonthlyExpense];
-      total = totalSubscriptionCost + totalMonthlyExpense;
-      detailedData = data.map((value, index) => ({ label: labels[index], currentValue: value }));
-
+      data = [
+        { label: 'Subscriptions', value: totalSubscriptionCost, currentValue: totalSubscriptionCost },
+        { label: 'One-Time Expenses', value: totalMonthlyExpense, currentValue: totalMonthlyExpense }
+      ];
+      titleText = 'Monthly Spending Breakdown';
     } else if (dataType === 'investments') {
       titleText = 'Investment Portfolio Allocation';
-      
       const portfolioItems = investments.map(inv => {
         const priceKey = inv.type === 'coin' ? inv.apiId : inv.type;
-        const currentPrice = ensureNumber(priceKey && prices ? prices[priceKey] : 0);
-        const currentValue = ensureNumber(inv.amount) * currentPrice;
-        const initialValue = ensureNumber(inv.initialValue);
-        const profitLoss = currentValue - initialValue;
-
+        const currentPrice = priceKey ? (prices?.[priceKey] || 0) : 0;
+        const currentValue = inv.amount * currentPrice;
+        const profitLoss = currentValue - inv.initialValue;
+        
         return {
           label: inv.name,
+          value: currentValue,
           currentValue: currentValue,
           profitLoss: profitLoss,
         };
       });
 
-      labels = portfolioItems.map(p => p.label);
-      data = portfolioItems.map(p => p.currentValue);
-      total = data.reduce((sum, val) => sum + val, 0);
-      detailedData = portfolioItems;
+      data = portfolioItems;
     }
 
     const finalChartData = {
-      labels: labels,
+      labels: data.map(item => item.label),
       datasets: [{
-        data: data,
+        data: data.map(item => item.value),
         backgroundColor: ['#3b82f6', '#ef4444', '#a855f7', '#f97316', '#eab308', '#84cc16', '#14b8a6', '#f43f5e'],
         borderColor: '#ffffff',
-        borderWidth: 4,
-        hoverOffset: 8,
+        borderWidth: 2,
       }],
     };
 
-    const finalChartOptions = {
+    const options = {
       responsive: true,
-      cutout: '70%',
+      maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
         title: { display: true, text: titleText, font: { size: 18 } },
-        centerText: { total: total },
+        centerText: { total: data.reduce((sum, item) => sum + item.value, 0) },
         tooltip: {
           callbacks: {
-            label: function(context: any) {
+            label: function(context: TooltipItem<'doughnut'>) {
               const itemIndex = context.dataIndex;
-              const item = detailedData[itemIndex];
+              const item = data[itemIndex];
 
               if (!item) return '';
               
-              const currentValueStr = `Value: ${item.currentValue.toFixed(2)} TL`;
-
+              const currentValueStr = `Value: ${formatCurrency(item.currentValue)}`;
+              
               if (item.profitLoss !== undefined) {
-                const profitStr = `P/L: ${item.profitLoss.toFixed(2)} TL`;
-                return [` ${context.label}`, `   ${currentValueStr}`, `   ${profitStr}`];
+                const profitStr = `P/L: ${formatCurrency(item.profitLoss)}`;
+                return [item.label, currentValueStr, profitStr];
               }
               
-              return ` ${context.label}: ${currentValueStr}`;
+              return `${item.label}: ${currentValueStr}`;
             },
-            labelColor: function(context: any) {
+            labelColor: function(context: TooltipItem<'doughnut'>) {
               const itemIndex = context.dataIndex;
-              const item = detailedData[itemIndex];
-              if(item && item.profitLoss > 0) return { borderColor: '#16a34a', backgroundColor: '#16a34a' };
-              if(item && item.profitLoss < 0) return { borderColor: '#dc2626', backgroundColor: '#dc2626' };
-              return { borderColor: '#475569', backgroundColor: '#475569' };
+              const item = data[itemIndex];
+              if(item && item.profitLoss && item.profitLoss > 0) return { borderColor: '#16a34a', backgroundColor: '#16a34a' };
+              if(item && item.profitLoss && item.profitLoss < 0) return { borderColor: '#dc2626', backgroundColor: '#dc2626' };
+              return { borderColor: '#6b7280', backgroundColor: '#6b7280' };
             }
           }
         }
       },
+      elements: {
+        arc: {
+          borderWidth: (context: { dataIndex: number }) => {
+            const item = data[context.dataIndex];
+            return item && item.profitLoss !== undefined ? 3 : 2;
+          },
+          borderColor: (context: { dataIndex: number }) => {
+            const item = data[context.dataIndex];
+            if(item && item.profitLoss && item.profitLoss > 0) return '#16a34a';
+            if(item && item.profitLoss && item.profitLoss < 0) return '#dc2626';
+            return '#ffffff';
+          }
+        }
+      }
     };
 
-    return { chartData: finalChartData, chartOptions: finalChartOptions as any };
-
+    return { chartData: finalChartData, chartOptions: options };
   }, [dataType, subscriptions, expenses, investments, prices]);
 
-  if (chartData.datasets[0].data.length === 0 || chartData.datasets[0].data.every(item => item === 0)) {
-    return (
-      <div className="text-center p-10 border-2 border-dashed border-slate-200 rounded-xl">
-        <p className="text-slate-500">No data to display for this view.</p>
-      </div>
-    );
-  }
-
-  return <Doughnut ref={chartRef} data={chartData} options={chartOptions} plugins={[centerTextPlugin]} />;
+  return <Doughnut data={chartData} options={chartOptions} plugins={[centerTextPlugin]} />;
 }
 
 export default SummaryDoughnutChart;

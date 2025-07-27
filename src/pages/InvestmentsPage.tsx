@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { useData } from '../context/DataContext'; // Verilerimizi ve fonksiyonlarımızı buradan alıyoruz
+import { useData } from '../context/DataContext';
 import InvestmentForm from '../components/InvestmentForm/InvestmentForm';
 import InvestmentList from '../components/InvestmentList/InvestmentList';
 import EditInvestmentModal from '../components/EditInvestmentModal';
-import type { IInvestment } from '../types/types';
+import type { IInvestment, UpdateInvestmentRequest } from '../types/types';
+import { Spinner } from '../components/common/Spinner';
 
 function InvestmentsPage() {
-  // Gerekli her şeyi (fiyatlar ve yüklenme durumu dahil) merkezi useData hook'undan alıyoruz.
   const { 
     investments, 
     addInvestment, 
@@ -16,7 +16,6 @@ function InvestmentsPage() {
     isLoadingPrices 
   } = useData();
 
-  // Bu sayfaya özel state'ler (modal kontrolü için) burada kalıyor.
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingInvestment, setEditingInvestment] = useState<IInvestment | null>(null);
 
@@ -30,7 +29,7 @@ function InvestmentsPage() {
       deleteInvestment(id);
     }
   };
-
+  
   return (
     <>
       <div className="p-6 bg-white rounded-xl shadow-lg">
@@ -40,9 +39,8 @@ function InvestmentsPage() {
         <InvestmentForm onAddInvestment={addInvestment} />
         <hr className="my-8"/>
 
-        {/* Merkezi state'imiz olan isLoadingPrices'ı kullanıyoruz */}
         {isLoadingPrices ? (
-          <p className="text-center text-slate-500">Loading current prices...</p>
+          <Spinner />
         ) : (
           <InvestmentList 
             investments={investments} 
@@ -56,7 +54,11 @@ function InvestmentsPage() {
         isOpen={isEditModalOpen}
         investment={editingInvestment}
         onClose={() => setIsEditModalOpen(false)}
-        onUpdate={updateInvestment}
+        onUpdate={(updatedData: UpdateInvestmentRequest) => {
+            if (editingInvestment) {
+                updateInvestment(editingInvestment.id, updatedData);
+            }
+        }}
       />
     </>
   );

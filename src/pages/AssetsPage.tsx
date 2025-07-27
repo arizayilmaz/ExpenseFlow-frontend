@@ -1,33 +1,29 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useData } from '../context/DataContext';
 import Dashboard from '../components/dashboard/Dashboard';
 import SummaryDoughnutChart from '../components/charts/SummaryDoughnutChart';
+import AssetForm from '../components/assetForm/AssetForm';
+import AssetList from '../components/assetList/AssetList';
+import { Spinner } from '../components/common/Spinner';
 
-// Buton stilleri
 const activeChartButton = "bg-blue-600 text-white";
 const inactiveChartButton = "bg-slate-100 text-slate-700 hover:bg-slate-200";
 
 function AssetsPage() {
-  const { subscriptions, expenses, investments, prices, isLoadingPrices } = useData();
-  
-  // Hangi grafiğin gösterileceğini tutan state ('spending' veya 'investments')
-  const [chartView, setChartView] = useState<'spending' | 'investments'>('spending');
+  const {
+    subscriptions,
+    expenses,
+    investments,
+    prices,
+    isLoadingPrices,
+  } = useData();
 
-  // Sadece bu ayki harcamaları filtrelemek için useMemo
-  const monthlyExpenses = useMemo(() => {
-    const today = new Date();
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
-    return expenses.filter(expense => {
-      const expenseDate = new Date(expense.date);
-      return expenseDate.getMonth() === currentMonth && expenseDate.getFullYear() === currentYear;
-    });
-  }, [expenses]);
+  const [chartView, setChartView] = useState<'spending' | 'investments'>('investments');
 
   return (
     <div className="max-w-5xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden md:grid md:grid-cols-4">
       
-      {/* Sol Taraf: Ana İçerik ve Grafikler */}
+      {/* Sol Taraf: Ana İçerik */}
       <div className="p-6 md:p-10 md:col-span-3 border-b md:border-b-0 md:border-r border-slate-200">
         <header className="text-center md:text-left border-b border-slate-200 pb-6 mb-8">
           <h1 className="text-3xl font-bold text-slate-800">My Assets</h1>
@@ -35,6 +31,8 @@ function AssetsPage() {
             An overview of your financial assets and spending habits.
           </p>
         </header>
+
+
         <main>
           {/* Grafik değiştirme butonları */}
           <div className="flex items-center justify-center space-x-2 mb-6 p-1 bg-slate-100 rounded-lg">
@@ -52,28 +50,39 @@ function AssetsPage() {
             </button>
           </div>
           
-          {/* Dinamik grafik bileşenimiz */}
+          {/* Dinamik grafik bileşeni */}
           <div className="mb-12 max-w-md mx-auto">
              {isLoadingPrices ? (
-                <p className="text-center p-10 text-slate-500">Loading Chart Data...</p>
+                <Spinner />
              ) : (
                 <SummaryDoughnutChart
-                    key={`${chartView}-${expenses.length}-${subscriptions.length}-${investments.length}`}
-                  dataType={chartView}
+                  dataType={'investments'}
                   subscriptions={subscriptions}
-                  expenses={monthlyExpenses}
+                  expenses={expenses}
                   investments={investments}
-                  prices={prices}
+                  prices={prices || {}}
                 />
              )}
+          </div>
+
+          <hr className="my-8 border-t-2 border-slate-200" />
+
+          {/* Varlıkları Yönetme Alanı */}
+          <div>
+            <h2 className="text-2xl font-bold text-slate-800 mb-4">Manage Your Assets</h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <AssetForm />
+              <AssetList />
+            </div>
           </div>
         </main>
       </div>
 
-      <aside className="p-6 md:p-10 md:col-span-1 bg-white border-t md:border-t-0 md:border-l border-slate-200">
+      {/* Sağ Taraf: Dashboard */}
+      <aside className="p-4 md:p-2 md:col-span-1 bg-white border-t md:border-t-0 md:border-l border-slate-200">
         <Dashboard />
       </aside>
-      
+    
     </div>
   );
 }
